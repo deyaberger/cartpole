@@ -2,7 +2,7 @@ import gym
 import random
 from matplotlib import pyplot as plt
 import numpy as np
-import torch
+# import torch
 import math
 from config import config
 
@@ -10,7 +10,8 @@ def render_graph(total_episodes, total_steps):
     if config.graph == 1:
         plt.plot(total_episodes, total_steps, color='r')
         plt.pause(0.001)
-    
+
+
 def init_graph():
     if config.graph == 1:
         plt.ylabel('steps')
@@ -65,16 +66,16 @@ for episode in range(config.episodes):
         new_state, reward, done, _  = env.step(action)
         if config.render == 1:
             env.render()
-        steps += reward
+        steps += 1
         if done == True:
-            update_q_table(state, action, new_state, config.reward_values[0])
-            break
-        else:
-            update_q_table(state, action, new_state, config.reward_values[1])
-            state = new_state
+            reward = config.reward_values[0]
+        update_q_table(state, action, new_state, reward)
+        state = new_state
+    print(f"steps: {steps}, /t epsilon {config.epsilon}")
     config.epsilon = config.epsilon * config.epsilon_decay
     total_episodes.append(episode)
     total_steps.append(steps)
-    render_graph(total_episodes, total_steps)
+    if config.graph and (episode % config.graph_frequency == 0):
+        render_graph(total_episodes, total_steps)
 if config.graph == 1:
     plt.show()
