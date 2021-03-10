@@ -6,9 +6,9 @@ import numpy as np
 import math
 from config import config
 
-def render_graph(total_episodes, total_steps):
+def render_graph(total_episodes, avg_steps):
     if config.graph == 1:
-        plt.plot(total_episodes, total_steps, color='r')
+        plt.plot(avg_steps, color='r')
         plt.pause(0.001)
 
 
@@ -54,13 +54,11 @@ def discrete(state):
 env = gym.envs.make("CartPole-v1")
 init_graph()
 Q_table = init_q_table()
-total_steps, total_episodes= [0], [0]
+total_steps, total_episodes, avg_steps = [0], [0], [0]
 for episode in range(config.episodes):
     state = env.reset()
     steps = 0
     done = False
-    if (episode % 10) == 0:
-        print(f'Q_table[5, 5, 5, 5][0] = {Q_table[5, 5, 5, 5][0]}')
     while not done:
         action = policy(state)
         new_state, reward, done, _  = env.step(action)
@@ -71,11 +69,13 @@ for episode in range(config.episodes):
             reward = config.reward_values[0]
         update_q_table(state, action, new_state, reward)
         state = new_state
+    if ((episode % 100 == 0) & (episode != 0)):
+        avg_steps.append(np.mean(total_steps[-100 :]))
     print(f"steps: {steps}, /t epsilon {config.epsilon}")
     config.epsilon = config.epsilon * config.epsilon_decay
     total_episodes.append(episode)
     total_steps.append(steps)
     if config.graph and (episode % config.graph_frequency == 0):
-        render_graph(total_episodes, total_steps)
+        render_graph(total_episodes, avg_steps)
 if config.graph == 1:
     plt.show()
