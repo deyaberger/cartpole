@@ -15,7 +15,7 @@ config = DotDict()
 
 config.state_space_limits = [[-4.8, 4.8], [-4, 4], [-0.418, 0.418], [-4, 4]] #[Cart Pos, Cart Velocity, Pole Angle, Pole Angular Velocity]
 
-config.qt_size_array = [7, 7, 7, 7] # [Cart Pos, Cart Velocity, Pole Angle, Pole Angular Velocity]
+config.qt_size_array = [11, 11, 11, 11] # [Cart Pos, Cart Velocity, Pole Angle, Pole Angular Velocity]
 config.reward_values = {0 : -10, 1 : 1}
 config.discount_factor = 0.95
 config.learning_rate = 0.005

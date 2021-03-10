@@ -5,6 +5,7 @@ import numpy as np
 # import torch
 import math
 from config import config
+import pickle
 
 def render_graph(total_episodes, avg_steps):
     if config.graph == 1:
@@ -50,32 +51,65 @@ def discrete(state):
     pole_velo_discrete = discrete_one(pole_velo_float, config.state_space_limits[3][0], config.state_space_limits[3][1], config.qt_size_array[3])
     return (cart_pos_discrete, cart_velo_discrete, pole_pos_discrete, pole_velo_discrete)
     
-
 env = gym.envs.make("CartPole-v1")
-init_graph()
 Q_table = init_q_table()
-total_steps, total_episodes, avg_steps = [0], [0], [0]
-for episode in range(config.episodes):
-    state = env.reset()
-    steps = 0
-    done = False
-    while not done:
-        action = policy(state)
-        new_state, reward, done, _  = env.step(action)
-        if config.render == 1:
+
+def learn():
+    init_graph()
+    total_steps, total_episodes, avg_steps = [0], [0], [0]
+    for episode in range(config.episodes):
+        state = env.reset()
+        steps = 0
+        done = False
+        while not done:
+            action = policy(state)
+            new_state, reward, done, _  = env.step(action)
+            if (config.render == 1):
+                env.render()
+            steps += 1
+            if done == True:
+                reward = config.reward_values[0]
+            update_q_table(state, action, new_state, reward)
+            state = new_state
+
+        if ((episode % 100 == 0) & (episode != 0)):
+            avg_steps.append(np.mean(total_steps[-100 :]))
+        print(f"steps: {steps}, /t epsilon {config.epsilon}")
+        config.epsilon = config.epsilon * config.epsilon_decay
+        if (config.epsilon < 0.1):
+            config.epsilon = 1.0
+        total_episodes.append(episode)
+        total_steps.append(steps)
+
+        if config.graph and (episode % config.graph_frequency == 0):
+            render_graph(total_episodes, avg_steps)
+
+        if (avg_steps[-1] > 400):
+            with open("q_table.pkl", "wb+") as f:
+                pickle.dump(Q_table, f)
+            return
+        
+    if config.graph == 1:
+        plt.show()
+
+def play():
+    config.epsilon = 0.0
+    while True:
+        state = env.reset()
+        done = False
+        while not done:
+            action = policy(state)
+            new_state, reward, done, _  = env.step(action)
             env.render()
-        steps += 1
-        if done == True:
-            reward = config.reward_values[0]
-        update_q_table(state, action, new_state, reward)
-        state = new_state
-    if ((episode % 100 == 0) & (episode != 0)):
-        avg_steps.append(np.mean(total_steps[-100 :]))
-    print(f"steps: {steps}, /t epsilon {config.epsilon}")
-    config.epsilon = config.epsilon * config.epsilon_decay
-    total_episodes.append(episode)
-    total_steps.append(steps)
-    if config.graph and (episode % config.graph_frequency == 0):
-        render_graph(total_episodes, avg_steps)
-if config.graph == 1:
-    plt.show()
+            state = new_state
+
+def read_cutie():
+    with open("q_table.pkl", "rb") as f:
+        return pickle.load(f)
+
+if __name__ == "__main__":
+    learn()
+    # Q_table = read_cutie()
+    # play()
+
+    
