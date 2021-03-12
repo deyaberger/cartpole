@@ -2,24 +2,26 @@ import gym
 import random
 from matplotlib import pyplot as plt
 import numpy as np
-# import torch
-import math
+# import math
 from config import config
 import pickle
 
-def render_graph(total_episodes, avg_steps):
+def render_graph(avg_steps, avg_episodes, goal):
     if config.graph == 1:
-        plt.plot(avg_steps, color='r')
+        plt.plot(avg_episodes, avg_steps, label='avg_steps', color='olive')
+        plt.plot(range(goal[0], goal[1]), [200] * (goal[1] - goal[0]), color = 'blue')
+        goal = [goal[1], goal[1] + config.graph_frequency]
         plt.pause(0.001)
+        return (goal)
+    return None
 
 
 def init_graph():
     if config.graph == 1:
+        plt.title('cartpole_dd')
         plt.ylabel('steps')
         plt.xlabel('episode')
-        plt.plot([200] * 150, label = "goal")
-        plt.pause(0.001)
-        plt.legend(loc='best')
+        
 
 def policy(state):
     if (random.random() < config.epsilon):
@@ -56,7 +58,7 @@ Q_table = init_q_table()
 
 def learn():
     init_graph()
-    total_steps, total_episodes, avg_steps = [0], [0], [0]
+    total_steps, total_episodes, avg_steps, avg_episodes, goal = [0], [0], [0], [0], [0, config.graph_frequency]
     for episode in range(config.episodes):
         state = env.reset()
         steps = 0
@@ -72,24 +74,28 @@ def learn():
             update_q_table(state, action, new_state, reward)
             state = new_state
 
-        if ((episode % 100 == 0) & (episode != 0)):
-            avg_steps.append(np.mean(total_steps[-100 :]))
-        print(f"steps: {steps}, /t epsilon {config.epsilon}")
+        if ((episode % config.average == 0) & (episode != 0)):
+            avg_steps.append(np.mean(total_steps[-config.average :]))
+            avg_episodes.append(episode)
         config.epsilon = config.epsilon * config.epsilon_decay
         if (config.epsilon < 0.1):
-            config.epsilon = 1.0
+            config.epsilon = 0.9
         total_episodes.append(episode)
         total_steps.append(steps)
 
         if config.graph and (episode % config.graph_frequency == 0):
-            render_graph(total_episodes, avg_steps)
+            goal = render_graph(avg_steps, avg_episodes, goal)
 
-        if (avg_steps[-1] > 400):
-            with open("q_table.pkl", "wb+") as f:
+        if avg_steps[-1] > 400:
+            with open("q_table_bis.pkl", "wb+") as f:
                 pickle.dump(Q_table, f)
             return
         
     if config.graph == 1:
+        plt.title('cartpole_dd')
+        plt.ylabel('steps')
+        plt.xlabel('episode')
+        plt.legend()
         plt.show()
 
 def play():

@@ -25,3 +25,4 @@ config.episodes = 100000
 config.graph = 1
 config.render = 0
 config.graph_frequency = 1000
+config.average = 100
