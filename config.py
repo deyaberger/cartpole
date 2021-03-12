@@ -10,19 +10,19 @@ class DotDict(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
-config = DotDict()
+infos = DotDict()
 
 
-config.state_space_limits = [[-4.8, 4.8], [-4, 4], [-0.418, 0.418], [-4, 4]] #[Cart Pos, Cart Velocity, Pole Angle, Pole Angular Velocity]
+infos.state_space_limits = [[-4.8, 4.8], [-4, 4], [-0.418, 0.418], [-4, 4]] #[Cart Pos, Cart Velocity, Pole Angle, Pole Angular Velocity]
 
-config.qt_size_array = [11, 11, 11, 11] # [Cart Pos, Cart Velocity, Pole Angle, Pole Angular Velocity]
-config.reward_values = {0 : -10, 1 : 1}
-config.discount_factor = 0.95
-config.learning_rate = 0.005
-config.epsilon = 0.9
-config.epsilon_decay = 0.9999
-config.episodes = 100000
-config.graph = 1
-config.render = 0
-config.graph_frequency = 1000
-config.average = 100
+infos.qt_size_array = [7, 7, 7, 7] # [Cart Pos, Cart Velocity, Pole Angle, Pole Angular Velocity]
+infos.reward_values = {0 : -10, 1 : 1}
+infos.discount_factor = 0.95
+infos.learning_rate = 0.005
+infos.epsilon = 0.9
+infos.epsilon_decay = 0.9999
+infos.episodes = 1000000
+infos.graph = 0
+infos.render = 1
+infos.graph_frequency = 10000
+infos.average = 100
