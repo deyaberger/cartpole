@@ -74,11 +74,11 @@ def learn():
             update_q_table(state, action, new_state, reward)
             state = new_state
 
-        if ((episode % infos.average == 0) & (episode != 0)):
+        if ((episode % infos.average == 0) and (episode != 0)):
             avg_steps.append(np.mean(total_steps[-infos.average :]))
             avg_episodes.append(episode)
         infos.epsilon = infos.epsilon * infos.epsilon_decay
-        if (infos.epsilon < 0.1):
+        if (infos.epsilon < infos.epislon_min):
             infos.epsilon = 1
         total_episodes.append(episode)
         total_steps.append(steps)
