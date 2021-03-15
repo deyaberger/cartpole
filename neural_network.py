@@ -66,11 +66,29 @@ def copy_model(model):
   model_copy.set_weights(model.get_weights())
   return (model_copy)
 
+def eval(m1):
+    results = []
+    for episode in range(100):
+        state = env.reset()
+        state = np.reshape(state, [1, state_size])
+        steps = 0
+        done = False
+        
+        while not done and steps < 200:
+            predicted_qvalues = m1.predict(state)
+            action = np.argmax(predicted_qvalues[0])
+            state, _, done, _  = env.step(action)
+            state = np.reshape(state, [1, state_size])
+            steps += 1
+        results.append(steps)
+    return np.mean(results)
+
+
 def learn():
     epsilon = infos.epsilon
     m1 = init_model(state_size, action_size)
     m2 = init_model(state_size, action_size)
-    m2.set_weights(m1.get_weights)
+    m2.set_weights(m1.get_weights())
     # m2 = copy_model(m1)
     for episode in range(infos.episodes):
         state = env.reset()
@@ -103,34 +121,19 @@ def learn():
         if (epsilon < infos.epislon_min):
             epsilon = infos.epislon_min
           
+        print(f'\nepisode = {episode}, total_steps = {steps} and epsilon == {round(epsilon, 3)}')
         if episode % 10 == 0 and episode != 0:
-          print(f'\nepisode = {episode}, total_steps = {steps} and epsilon == {round(epsilon, 3)}')
 
           # m2 = copy_model(m1)
-          m2.set_weights(m1.get_weights)
+          print(f"evaluation m1 = {eval(m1)}")
+          print(f"evaluation m2 bef = {eval(m2)}")
+          m2.set_weights(m1.get_weights())
+          print(f"evaluation m2 aft = {eval(m2)}")
           # m2 = keras.models.clone_model(m1)
-          print(f"evaluation = {eval(m1)}")
 
         if episode % 50 == 0 and episode != 0:
             save(f'outs/with_dqn_{episode}.hdf5', m1)
     return m1
-
-def eval(m1):
-    results = []
-    for episode in range(100):
-        state = env.reset()
-        state = np.reshape(state, [1, state_size])
-        steps = 0
-        done = False
-        
-        while not done and steps < 200:
-            predicted_qvalues = m1.predict(state)
-            action = np.argmax(predicted_qvalues[0])
-            state, _, done, _  = env.step(action)
-            state = np.reshape(state, [1, state_size])
-            steps += 1
-        results.append(steps)
-    return np.mean(results)
 
 infos.epsilon = 0.9
 m1 = learn()
