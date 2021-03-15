@@ -18,24 +18,28 @@ import pickle
 from collections import deque
 import numpy as np
 import random
+import copy
 
 env = gym.envs.make("CartPole-v1")
 state_size = env.observation_space.shape[0]
 action_size = env.action_space.n
+print(f"state_size = {state_size}, action size = {action_size}")
 output_dir = "./cartpole/outs"
 memory = deque(maxlen=2000)
 
 def init_model(state_size, action_size):
     learning_rate = infos.learning_rate
     model = keras.Sequential()
-    model.add(keras.layers.Dense(24, input_shape=[state_size], activation='relu'))
-    model.add(keras.layers.Dense(12, activation='relu'))
+    model.add(keras.layers.Dense(8, input_shape=[state_size], activation='relu'))
+    model.add(keras.layers.Dense(16, activation='relu'))
+    model.add(keras.layers.Dense(32, activation='relu'))
+    # model.add(keras.layers.Dense(64, activation='relu'))
     model.add(keras.layers.Dense(action_size, activation='linear'))
     model.compile(loss='mse', optimizer=tf.keras.optimizers.Adam(lr=learning_rate))
     return model
 
-def policy(state, predicted_qvalues):
-    if (random.random() < infos.epsilon):
+def policy(state, predicted_qvalues, epsilon):
+    if (random.random() < epsilon):
         action = random.randint(0, 1)
     else:
         action = np.argmax(predicted_qvalues)
@@ -50,12 +54,24 @@ def save(name, model):
 def fit_model(state, action, reward, new_state, m1, m2, target_qvalues):
     target = reward + (infos.discount_factor * max(m2.predict(new_state)[0]))
     target_qvalues[0][action] = target 
-    m1.fit(state, target_qvalues, epochs=1, verbose=0)
+    #is .fit() good ?
+    # print(f"state = {state}, action = {action}, reward = {reward}, target_qvalues = {target_qvalues}")
+    m1.fit(state, target_qvalues, verbose = 0)
     return m1, m2
 
+def copy_model(model):
+  model_copy = keras.models.clone_model(model)
+  model_copy.build((None, action_size)) # replace 10 with number of variables in input layer
+  model.compile(loss='mse', optimizer=tf.keras.optimizers.Adam(lr=infos.learning_rate))
+  model_copy.set_weights(model.get_weights())
+  return (model_copy)
+
 def learn():
+    epsilon = infos.epsilon
     m1 = init_model(state_size, action_size)
-    m2 = keras.models.clone_model(m1)
+    m2 = init_model(state_size, action_size)
+    m2.set_weights(m1.get_weights)
+    # m2 = copy_model(m1)
     for episode in range(infos.episodes):
         state = env.reset()
         state = np.reshape(state, [1, state_size])
@@ -63,8 +79,8 @@ def learn():
         done = False
         
         while not done:
-            predicted_qvalues = m1.predict(state)
-            action = policy(state, predicted_qvalues[0])
+            predicted_qvalues = m2.predict(state)
+            action = policy(state, predicted_qvalues[0], epsilon)
             new_state, reward, done, _  = env.step(action)
             new_state = np.reshape(new_state, [1, state_size])
             steps += 1
@@ -77,20 +93,49 @@ def learn():
         if len(memory) > 200 and (random.random() < 0.5):
           print(f"*** memory replay for episode:{episode}")
           minibatch = random.sample(memory, infos.batch_size)
+          ### check minibatch
           for state, action, reward, new_state, done in minibatch:
               predicted_qvalues = m1.predict(state)
-              action = policy(state, predicted_qvalues[0])
+              action = policy(state, predicted_qvalues[0], epsilon)
               m1, m2 = fit_model(state, action, reward, new_state, m1, m2, predicted_qvalues)
 
-        infos.epsilon = infos.epsilon * infos.epsilon_decay
-        if (infos.epsilon < infos.epislon_min):
-            infos.epsilon = 0.99
-            
-        print(f'\nepisode = {episode}, total_steps = {steps} and epsilon == {round(infos.epsilon, 3)}')
-        m2 = keras.models.clone_model(m1)
-            
+        epsilon = epsilon * infos.epsilon_decay
+        if (epsilon < infos.epislon_min):
+            epsilon = infos.epislon_min
+          
+        if episode % 10 == 0 and episode != 0:
+          print(f'\nepisode = {episode}, total_steps = {steps} and epsilon == {round(epsilon, 3)}')
+
+          # m2 = copy_model(m1)
+          m2.set_weights(m1.get_weights)
+          # m2 = keras.models.clone_model(m1)
+          print(f"evaluation = {eval(m1)}")
+
         if episode % 50 == 0 and episode != 0:
             save(f'outs/with_dqn_{episode}.hdf5', m1)
+    return m1
 
-learn()
+def eval(m1):
+    results = []
+    for episode in range(100):
+        state = env.reset()
+        state = np.reshape(state, [1, state_size])
+        steps = 0
+        done = False
+        
+        while not done and steps < 200:
+            predicted_qvalues = m1.predict(state)
+            action = np.argmax(predicted_qvalues[0])
+            state, _, done, _  = env.step(action)
+            state = np.reshape(state, [1, state_size])
+            steps += 1
+        results.append(steps)
+    return np.mean(results)
+
+infos.epsilon = 0.9
+m1 = learn()
+
+results = eval(m1)
+
+results
 
