@@ -4,6 +4,16 @@ from matplotlib import pyplot as plt
 import numpy as np
 from config import infos
 import pickle
+import sys
+import argparse
+
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-l', '--load', help='Choose if you want to load an existing qtable', action='store_true')
+    parser.add_argument('-e', '--epochs', help='Choose the number of epochs you need for your training', type=int, default=200)
+    args = parser.parse_args()
+    return (args)
+
 
 def render_graph(avg_steps, avg_episodes, goal):
     if infos.graph == 1:
@@ -89,7 +99,7 @@ def learn():
             print(f'episode = {episode}, avg_steps = {round(avg_steps[-1], 3)} and epsilon == {round(infos.epsilon, 3)}')
 
         if avg_steps[-1] > 400:
-            with open("q_table_bis.pkl", "wb+") as f:
+            with open(f"q_table_bis.pkl", "wb+") as f:
                 pickle.dump(Q_table, f)
             return
         
@@ -115,11 +125,15 @@ def play():
             state = new_state
     env.close()
 
-def read_cutie():
-    with open("q_table.pkl", "rb") as f:
+def read_cutie(file):
+    with open(file, "rb") as f:
         return pickle.load(f)
 
+
 if __name__ == "__main__":
-    # learn()
-    Q_table = read_cutie()
+    args = parse_arguments()
+    if args.load == False:
+        learn()
+    elif args.load == True:
+        Q_table = read_cutie("q_table.pkl")
     play()
